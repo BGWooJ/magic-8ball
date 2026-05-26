@@ -15,7 +15,6 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             overflow: hidden;
             background: #0a0e27;
-            cursor: default;
         }
 
         /* Galaxy Background */
@@ -47,12 +46,8 @@
             width: 400px;
             height: 400px;
             transform-style: preserve-3d;
+            transition: transform 0.1s ease-out;
             margin-bottom: 60px;
-            cursor: grab;
-        }
-
-        .ball-container:active {
-            cursor: grabbing;
         }
 
         .ball-container.shaking {
@@ -113,10 +108,10 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%) translateZ(10px);
-            width: 220px;
-            height: 220px;
+            width: 230px; 
+            height: 230px; 
             background: radial-gradient(circle, #1a1a3e, #0a0a1e);
-            clip-path: polygon(50% 10%, 95% 90%, 5% 90%);
+            clip-path: polygon(50% 15%, 90% 85%, 10% 85%);
             overflow: hidden;
             box-shadow: 
                 inset 0 0 30px rgba(0, 0, 0, 0.9),
@@ -131,37 +126,26 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
         }
 
-        /* Response Text */
+        /* Response Text (floating die) */
         .response-text {
             position: absolute;
             width: 85%;
             text-align: center;
             color: #64ffda;
-            font-size: 15px;
-            font-weight: 700;
-            text-shadow: 
-                0 0 15px rgba(100, 255, 218, 1),
-                0 0 5px rgba(100, 255, 218, 0.8),
-                0 2px 4px rgba(0, 0, 0, 0.8);
-            padding: 10px;
-            line-height: 1.5;
-            opacity: 1;
-            transform: translateY(0) scale(1);
-            filter: blur(0px);
-            background: rgba(10, 10, 30, 0.3);
-            border-radius: 8px;
-        }
-
-        .response-text.hidden {
+            font-size: 14px; 
+            font-weight: 600;
+            text-shadow: 0 0 10px rgba(100, 255, 218, 0.8);
+            padding: 10px 20px 25px 20px; 
+            line-height: 1.35;
             opacity: 0;
             transform: translateY(100px) scale(0.8);
             filter: blur(8px);
+            transition: none;
         }
 
-        .response-text.animating {
+        .response-text.visible {
             animation: floatUp 2.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
         }
 
@@ -189,7 +173,7 @@
             }
         }
 
-        .response-text.swaying {
+        .response-text.sway {
             animation: gentleSway 4s ease-in-out infinite;
         }
 
@@ -233,6 +217,13 @@
             background: linear-gradient(135deg, #555 0%, #777 100%);
         }
 
+        .shake-button .cooldown {
+            font-size: 14px;
+            display: block;
+            margin-top: 5px;
+            letter-spacing: 1px;
+        }
+
         /* Accessibility */
         .sr-only {
             position: absolute;
@@ -246,23 +237,22 @@
             border-width: 0;
         }
 
-        /* Responsive */
+        /* Responsive Configuration */
         @media (max-width: 768px) {
             .ball-container {
-                width: 320px;
-                height: 320px;
+                width: 300px;
+                height: 300px;
                 margin-bottom: 40px;
             }
 
             .window {
-                width: 180px;
-                height: 180px;
+                width: 170px; 
+                height: 170px; 
             }
 
             .response-text {
-                font-size: 12px;
-                padding: 8px;
-                line-height: 1.4;
+                font-size: 11px; 
+                padding: 5px 10px 15px 10px;
             }
 
             .shake-button {
@@ -273,10 +263,8 @@
     </style>
 </head>
 <body>
-    <!-- Galaxy Background Canvas -->
     <canvas id="galaxy-canvas"></canvas>
 
-    <!-- Main Container -->
     <div class="container">
         <div class="ball-container" id="ballContainer">
             <div class="eight-ball" id="eightBall">
@@ -291,11 +279,10 @@
         </div>
 
         <button class="shake-button" id="shakeButton" aria-label="Shake the magic 8-ball">
-            Shake
+            <span id="buttonText">Shake</span>
         </button>
     </div>
 
-    <!-- Screen Reader Announcements -->
     <div class="sr-only" aria-live="assertive" id="srAnnounce"></div>
 
     <script>
@@ -346,7 +333,7 @@
         ];
 
         // ===========================
-        // GALAXY BACKGROUND
+        // GALAXY BACKGROUND (CLEAN DRIFT - NO PARALLAX)
         // ===========================
         const canvas = document.getElementById('galaxy-canvas');
         const ctx = canvas.getContext('2d');
@@ -356,6 +343,11 @@
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
         }
+
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            initParticles();
+        });
 
         class Particle {
             constructor() {
@@ -367,16 +359,17 @@
                 this.opacity = Math.random() * 0.5 + 0.3;
                 
                 const colors = [
-                    'rgba(100, 255, 218, ',
-                    'rgba(79, 195, 247, ',
-                    'rgba(255, 128, 171, ',
-                    'rgba(186, 104, 200, ',
-                    'rgba(255, 183, 77, '
+                    'rgba(100, 255, 218, ',  
+                    'rgba(79, 195, 247, ',   
+                    'rgba(255, 128, 171, ',  
+                    'rgba(186, 104, 200, ',  
+                    'rgba(255, 183, 77, '    
                 ];
                 this.color = colors[Math.floor(Math.random() * colors.length)];
             }
 
             update() {
+                // Modified to drift cleanly without using mouse positions
                 this.x += this.speedX;
                 this.y += this.speedY;
 
@@ -409,19 +402,19 @@
         function animateGalaxy() {
             ctx.fillStyle = 'rgba(10, 14, 39, 0.1)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            for (let particle of particles) {
+            
+            particles.forEach(particle => {
                 particle.update();
                 particle.draw();
-            }
-
+            });
+            
             requestAnimationFrame(animateGalaxy);
         }
 
-        // ===========================
-        // MAGIC 8-BALL LOGIC
-        // ===========================
-        const ballContainer = document.getElementById('ballContainer');
-        const eightBall = document.getElementById('eightBall');
-        const shakeButton = document.getElementById('shakeButton');
-        const responseText
+        // Initialize background
+        resizeCanvas();
+        initParticles();
+        animateGalaxy();
+    </script>
+</body>
+</html>
