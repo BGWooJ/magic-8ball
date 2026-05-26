@@ -107,7 +107,7 @@
             filter: blur(15px);
         }
 
-        /* Triangle Window - ENLARGED */
+        /* Triangle Window */
         .window {
             position: absolute;
             top: 50%;
@@ -134,7 +134,7 @@
             padding: 20px;
         }
 
-        /* Response Text (floating die) - IMPROVED READABILITY */
+        /* Response Text */
         .response-text {
             position: absolute;
             width: 85%;
@@ -348,7 +348,7 @@
         ];
 
         // ===========================
-        // GALAXY BACKGROUND (NO PARALLAX)
+        // GALAXY BACKGROUND
         // ===========================
         const canvas = document.getElementById('galaxy-canvas');
         const ctx = canvas.getContext('2d');
@@ -368,23 +368,20 @@
                 this.speedY = Math.random() * 0.5 - 0.25;
                 this.opacity = Math.random() * 0.5 + 0.3;
                 
-                // Fun light colors
                 const colors = [
-                    'rgba(100, 255, 218, ',  // Cyan
-                    'rgba(79, 195, 247, ',   // Blue
-                    'rgba(255, 128, 171, ',  // Pink
-                    'rgba(186, 104, 200, ',  // Purple
-                    'rgba(255, 183, 77, '    // Orange
+                    'rgba(100, 255, 218, ',
+                    'rgba(79, 195, 247, ',
+                    'rgba(255, 128, 171, ',
+                    'rgba(186, 104, 200, ',
+                    'rgba(255, 183, 77, '
                 ];
                 this.color = colors[Math.floor(Math.random() * colors.length)];
             }
 
             update() {
-                // Simple movement without parallax
                 this.x += this.speedX;
                 this.y += this.speedY;
 
-                // Wrap around edges
                 if (this.x > canvas.width) this.x = 0;
                 if (this.x < 0) this.x = canvas.width;
                 if (this.y > canvas.height) this.y = 0;
@@ -397,7 +394,6 @@
                 ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Glow effect
                 ctx.shadowBlur = 10;
                 ctx.shadowColor = this.color + '0.8)';
                 ctx.fill();
@@ -420,3 +416,12 @@
                 particle.update();
                 particle.draw();
             }
+
+            requestAnimationFrame(animateGalaxy);
+        }
+
+        // ===========================
+        // MAGIC 8-BALL LOGIC
+        // ===========================
+        const ballContainer = document.getElementById('ballContainer');
+        const shakeButton = document.
