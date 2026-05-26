@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Copilot Magic 8-Ball</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            background: #0a0e27;
+            cursor: grab;
+        }
+
+        body.grabbing {
+            cursor: grabbing;
+        }
+
+        /* Galaxy Background */
+        #galaxy-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* Main Container */
+        .container {
+            position: relative;
+            z-index: 10;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            perspective: 1200px;
+        }
+
+        /* 8-Ball Container */
+        .ball-container {
+            position: relative;
+            width: 400px;
+            height: 400px;
+            transform-style: preserve-3d;
+            transition: transform 0.1s ease-out;
+            margin-bottom: 60px;
+        }
+
+        .ball-container.shaking {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0) translateY(0) rotateX(0) rotateY(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-10px) translateY(-5px) rotateX(5deg) rotateY(-5deg); }
+            20%, 40%, 60%, 80% { transform: translateX(10px) translateY(5px) rotateX(-5deg) rotateY(5deg); }
+        }
+
+        /* The 8-Ball Sphere */
+        .eight-ball {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #2a2a2a, #000000);
+            box-shadow: 
+                inset -20px -20px 60px rgba(0, 0, 0, 0.9),
+                inset 20px 20px 40px rgba(255, 255, 255, 0.1),
+                0 30px 80px rgba(0, 0, 0, 0.8);
+            transform-style: preserve-3d;
+            position: relative;
+        }
+
+        /* Glossy Highlight */
+        .eight-ball::before {
+            content: '';
+            position: absolute;
+            top: 15%;
+            left: 20%;
+            width: 45%;
+            height: 45%;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.4), transparent 60%);
+            filter: blur(10px);
+            transform: translateZ(50px);
+        }
+
+        /* Specular Highlight */
+        .eight-ball::after {
+            content: '';
+            position: absolute;
+            top: 25%;
+            left: 30%;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.6), transparent 70%);
+            filter: blur(15px);
+        }
+
+        /* Triangle Window */
+        .window {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) translateZ(10px);
+            width: 180px;
+            height: 180px;
+            background: radial-gradient(circle, #1a1a3e, #0a0a1e);
+            clip-path: polygon(50% 15%, 90% 85%, 10% 85%);
+            overflow: hidden;
+            box-shadow: 
+                inset 0 0 30px rgba(0, 0, 0, 0.9),
+                0 0 20px rgba(100, 150, 255, 0.2);
+        }
+
+        /* Water Effect Container */
+        .water-container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Response Text (floating die) */
+        .response-text {
+            position: absolute;
+            width: 90%;
+            text-align: center;
+            color: #64ffda;
+            font-size: 16px;
+            font-weight: 600;
+            text-shadow: 0 0 10px rgba(100, 255, 218, 0.8);
+            padding: 15px;
+            line-height: 1.4;
+            opacity: 0;
+            transform: translateY(100px) scale(0.8);
+            filter: blur(8px);
+            transition: none;
+        }
+
+        .response-text.visible {
+            animation: floatUp 2.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+
+        @keyframes floatUp {
+            0% {
+                opacity: 0;
+                transform: translateY(100px) scale(0.8) rotate(-10deg);
+                filter: blur(8px);
+            }
+            40% {
+                opacity: 0.6;
+                filter: blur(4px);
+            }
+            70% {
+                transform: translateY(-10px) scale(1.05) rotate(2deg);
+                filter: blur(1px);
+            }
+            85% {
+                transform: translateY(5px) scale(0.98) rotate(-1deg);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1) rotate(0deg);
+                filter: blur(0px);
+            }
+        }
+
+        .response-text.sway {
+            animation: gentleSway 4s ease-in-out infinite;
+        }
+
+        @keyframes gentleSway {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            25% { transform: translateY(-3px) rotate(1deg); }
+            75% { transform: translateY(3px) rotate(-1deg); }
+        }
+
+        /* Shake Button */
+        .shake-button {
+            position: relative;
+            z-index: 20;
+            padding: 18px 45px;
+            font-size: 20px;
+            font-weight: bold;
+            color: #0a0e27;
+            background: linear-gradient(135deg, #64ffda 0%, #4fc3f7 100%);
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(100, 255, 218, 0.4);
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .shake-button:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(100, 255, 218, 0.6);
+            background: linear-gradient(135deg, #4fc3f7 0%, #64ffda 100%);
+        }
+
+        .shake-button:active:not(:disabled) {
+            transform: translateY(-1px);
+        }
+
+        .shake-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: linear-gradient(135deg, #555 0%, #777 100%);
+        }
+
+        .shake-button .cooldown {
+            font-size: 14px;
+            display: block;
+            margin-top: 5px;
+            letter-spacing: 1px;
+        }
+
+        /* Accessibility */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+
+        /* Loading State */
+        .loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #64ffda;
+            font-size: 24px;
+            z-index: 100;
+            text-shadow: 0 0 20px rgba(100, 255, 218, 0.8);
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .ball-container {
+                width: 300px;
+                height: 300px;
+                margin-bottom: 40px;
+            }
+
+            .window {
+                width: 140px;
+                height: 140px;
+            }
+
+            .response-text {
+                font-size: 13px;
+                padding: 10px;
+            }
+
+            .shake-button {
+                padding: 15px 35px;
+                font-size: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Galaxy Background Canvas -->
+    <canvas id="galaxy-canvas"></canvas>
+
+    <!-- Main Container -->
+    <div class="container">
+        <div class="ball-container" id="ballContainer">
+            <div class="eight-ball" id="eightBall">
+                <div class="window">
+                    <div class="water-container">
+                        <div class="response-text" id="responseText" role="status" aria-live="polite">
+                            Ask a question...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button class="shake-button" id="shakeButton" aria-label="Shake the magic 8-ball">
+            <span id="buttonText">Shake</span>
+        </button>
+    </div>
+
+    <!-- Screen Reader Announcements -->
+    <div class="sr-only" aria-live="assertive" id="srAnnounce"></div>
+
+    <script>
+        // ===========================
+        // RESPONSES DATA
+        // ===========================
+        const responses = [
+            "Pretty optimistic. My day just found its shortcut key.",
+            "Curious and ready to explore. Let me press enter and see.",
+            "Energized. It feels like coffee for workflows, just calmer.",
+            "Hopeful. Big tasks suddenly look bite sized.",
+            "More focused. Noise down, signal up.",
+            "Inspired. Drafts start themselves while I think.",
+            "Ready to get moving. Piles are turning into pointers.",
+            "Honestly relieved. Summaries finally summarize.",
+            "Calm and organized. Threads untangle and tasks line up.",
+            "Balanced. Less busywork, more brainwork.",
+            "Excited but sensible. Yes, with smart guardrails.",
+            "Confident. Search finds what I meant, not just what I typed.",
+            "A little lighter. Automation offers to carry the heavy stuff.",
+            "Calm again. My inbox finally exhaled.",
+            "Practical. Prompts in, clarity out.",
+            "Playful. Ideas land softly and stick.",
+            "Encouraged. Meetings recap themselves, almost.",
+            "Efficient. I feel like I just got time back.",
+            "Open to it. New tools, same goals, better path.",
+            "Thoughtful. Human judgment stays in the loop.",
+            "Ready to learn. I will start small and iterate fast.",
+            "Satisfied. Drafts come tidy and typos shy away.",
+            "Steady. Workflows weave smoother as knots untie.",
+            "Interested. Show me the before and the after.",
+            "Clear eyed. Web noise off and work signal on.",
+            "Reassured. Privacy first, productivity second.",
+            "Delighted. Charts seem to wink, ready when I am.",
+            "Productive. Minutes turn into moments rather than hours.",
+            "Strategic. Less scrolling and more deciding.",
+            "Uplifted. Content finds its voice without shouting.",
+            "Grounded. Polished results without the panic.",
+            "Curious again. Better prompt, better answer.",
+            "Streamlined. Tasks stack themselves neatly.",
+            "Ready to share. Wins worth repeating.",
+            "Quietly zen. One click closer to done.",
+            "Brave enough to try. I will test it on a real problem.",
+            "Grateful. My to do list looks smaller today.",
+            "Motivated. This might change Mondays for me.",
+            "Supported. Help when I need it and space when I do not.",
+            "All in. Co pilot engaged with two hands on the wheel."
+        ];
+
+        // ===========================
+        // GALAXY BACKGROUND
+        // ===========================
+        const canvas = document.getElementById('galaxy-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let mouseX = 0;
+        let mouseY = 0;
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 2 + 0.5;
+                this.speedX = Math.random() * 0.5 - 0.25;
+                this.speedY = Math.random() * 0.5 - 0.25;
+                this.opacity = Math.random() * 0.5 + 0.3;
+                
+                // Fun light colors
+                const colors = [
+                    'rgba(100, 255, 218, ',  // Cyan
+                    'rgba(79, 195, 247, ',   // Blue
+                    'rgba(255, 128, 171, ',  // Pink
+                    'rgba(186, 104, 200, ',  // Purple
+                    'rgba(255, 183, 77, '    // Orange
+                ];
+                this.color = colors[Math.floor(Math.random() * colors.length)];
+            }
+
+            update(parallaxX, parallaxY) {
+                this.x += this.speedX + parallaxX * 0.02;
+                this.y += this.speedY + parallaxY * 0.02;
+
+                // Wrap around edges
+                if (this.x > canvas.width) this.x = 0;
+                if (this.x < 0) this.x = canvas.width;
+                if (this.y > canvas.height) this.y = 0;
+                if (this.y < 0) this.y = canvas.height;
+            }
+
+            draw() {
+                ctx.fillStyle = this.color + this.opacity + ')';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Glow effect
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = this.color + '0.8)';
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        function initParticles() {
+            particles = [];
+            for (let i = 0; i < 150; i++) {
+                particles.push(new Particle());
+            }
+        }
+
+        function animateGalaxy() {
+            ctx.fillStyle = 'rgba(10, 14, 39, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            for (let particle of particles) {
+                particle.update(mouseX, mouseY);
+                particle.draw();
+            }
+
+            requestAnimationFrame(animateGalaxy);
+        }
+
+        // ===========================
+        // MAGIC 8-BALL LOGIC
+        // ===========================
+        const ballContainer = document.getElementById('ballContainer');
+        const shakeButton = document.getElementById('shakeButton');
+        const responseText = document.getElementById('responseText');
+        const srAnnounce = document.getElementById('srAnnounce');
+
+        let isShaking = false;
+        let cooldownActive = false;
+
+        function getRandomResponse() {
+            return responses[Math.floor(Math.random() * responses.length)];
+        }
+
+        function shake() {
+            if (isShaking || cooldownActive) return;
+
+            isShaking = true;
+            shakeButton.disabled = true;
+
+            ballContainer.classList.add('shaking');
+            responseText.classList.remove('visible', 'sway');
+            responseText.textContent = '';
+
+            setTimeout(() => {
+                ballContainer.classList.remove('shaking');
+                const response = getRandomResponse();
+                responseText.textContent = response;
+                responseText.classList.add('visible');
+                srAnnounce.textContent = response;
+
+                setTimeout(() => {
+                    responseText.classList.add('sway');
+                }, 2500);
+
+                isShaking = false;
+                cooldownActive = true;
+
+                let countdown = 5;
+                const updateButton = () => {
+                    shakeButton.disabled = false;
+                    shakeButton.innerHTML = `<span id="buttonText">Shake</span>`;
+                    cooldownActive = false;
+                };
+
+                const countdownInterval = setInterval(() => {
+                    countdown--;
+                    shakeButton.innerHTML = `<span id="buttonText">Shake</span><span class="cooldown">(${countdown}s)</span>`;
+
+                    if (countdown <= 0) {
+                        clearInterval(countdownInterval);
+                        updateButton();
+                    }
+                }, 1000);
+            }, 500);
+        }
+
+        // ===========================
+        // EVENT LISTENERS
+        // ===========================
+        shakeButton.addEventListener('click', shake);
+
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX - canvas.width / 2;
+            mouseY = e.clientY - canvas.height / 2;
+        });
+
+        // Touch support
+        document.addEventListener('touchmove', (e) => {
+            if (e.touches[0]) {
+                mouseX = e.touches[0].clientX - canvas.width / 2;
+                mouseY = e.touches[0].clientY - canvas.height / 2;
+            }
+        });
+
+        // Handle mouse drag for 3D effect
+        let isDragging = false;
+        let startX = 0;
+        let startY = 0;
+
+        document.addEventListener('mousedown', () => {
+            isDragging = true;
+            document.body.classList.add('grabbing');
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+            document.body.classList.remove('grabbing');
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                const deltaX = e.clientX - startX;
+                const deltaY = e.clientY - startY;
+                const eightBall = document.getElementById('eightBall');
+                eightBall.style.transform = `rotateY(${deltaX * 0.5}deg) rotateX(${-deltaY * 0.5}deg)`;
+            }
+            startX = e.clientX;
+            startY = e.clientY;
+        });
+
+        // Keyboard accessibility
+        shakeButton.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                shake();
+            }
+        });
+
+        // Initialize
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+        initParticles();
+        animateGalaxy();
+    </script>
+</body>
+</html>
