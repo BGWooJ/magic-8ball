@@ -357,13 +357,11 @@
         ];
 
         // ===========================
-        // GALAXY BACKGROUND
+        // GALAXY BACKGROUND (NO PARALLAX)
         // ===========================
         const canvas = document.getElementById('galaxy-canvas');
         const ctx = canvas.getContext('2d');
         let particles = [];
-        let mouseX = 0;
-        let mouseY = 0;
 
         function resizeCanvas() {
             canvas.width = window.innerWidth;
@@ -390,9 +388,10 @@
                 this.color = colors[Math.floor(Math.random() * colors.length)];
             }
 
-            update(parallaxX, parallaxY) {
-                this.x += this.speedX + parallaxX * 0.02;
-                this.y += this.speedY + parallaxY * 0.02;
+            update() {
+                // Simple movement without parallax
+                this.x += this.speedX;
+                this.y += this.speedY;
 
                 // Wrap around edges
                 if (this.x > canvas.width) this.x = 0;
@@ -424,131 +423,4 @@
 
         function animateGalaxy() {
             ctx.fillStyle = 'rgba(10, 14, 39, 0.1)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            for (let particle of particles) {
-                particle.update(mouseX, mouseY);
-                particle.draw();
-            }
-
-            requestAnimationFrame(animateGalaxy);
-        }
-
-        // ===========================
-        // MAGIC 8-BALL LOGIC
-        // ===========================
-        const ballContainer = document.getElementById('ballContainer');
-        const shakeButton = document.getElementById('shakeButton');
-        const responseText = document.getElementById('responseText');
-        const srAnnounce = document.getElementById('srAnnounce');
-
-        let isShaking = false;
-        let cooldownActive = false;
-
-        function getRandomResponse() {
-            return responses[Math.floor(Math.random() * responses.length)];
-        }
-
-        function shake() {
-            if (isShaking || cooldownActive) return;
-
-            isShaking = true;
-            shakeButton.disabled = true;
-
-            ballContainer.classList.add('shaking');
-            responseText.classList.remove('visible', 'sway');
-            responseText.textContent = '';
-
-            setTimeout(() => {
-                ballContainer.classList.remove('shaking');
-                const response = getRandomResponse();
-                responseText.textContent = response;
-                responseText.classList.add('visible');
-                srAnnounce.textContent = response;
-
-                setTimeout(() => {
-                    responseText.classList.add('sway');
-                }, 2500);
-
-                isShaking = false;
-                cooldownActive = true;
-
-                let countdown = 5;
-                const updateButton = () => {
-                    shakeButton.disabled = false;
-                    shakeButton.innerHTML = `<span id="buttonText">Shake</span>`;
-                    cooldownActive = false;
-                };
-
-                const countdownInterval = setInterval(() => {
-                    countdown--;
-                    shakeButton.innerHTML = `<span id="buttonText">Shake</span><span class="cooldown">(${countdown}s)</span>`;
-
-                    if (countdown <= 0) {
-                        clearInterval(countdownInterval);
-                        updateButton();
-                    }
-                }, 1000);
-            }, 500);
-        }
-
-        // ===========================
-        // EVENT LISTENERS
-        // ===========================
-        shakeButton.addEventListener('click', shake);
-
-        document.addEventListener('mousemove', (e) => {
-            mouseX = e.clientX - canvas.width / 2;
-            mouseY = e.clientY - canvas.height / 2;
-        });
-
-        // Touch support
-        document.addEventListener('touchmove', (e) => {
-            if (e.touches[0]) {
-                mouseX = e.touches[0].clientX - canvas.width / 2;
-                mouseY = e.touches[0].clientY - canvas.height / 2;
-            }
-        });
-
-        // Handle mouse drag for 3D effect
-        let isDragging = false;
-        let startX = 0;
-        let startY = 0;
-
-        document.addEventListener('mousedown', () => {
-            isDragging = true;
-            document.body.classList.add('grabbing');
-        });
-
-        document.addEventListener('mouseup', () => {
-            isDragging = false;
-            document.body.classList.remove('grabbing');
-        });
-
-        document.addEventListener('mousemove', (e) => {
-            if (isDragging) {
-                const deltaX = e.clientX - startX;
-                const deltaY = e.clientY - startY;
-                const eightBall = document.getElementById('eightBall');
-                eightBall.style.transform = `rotateY(${deltaX * 0.5}deg) rotateX(${-deltaY * 0.5}deg)`;
-            }
-            startX = e.clientX;
-            startY = e.clientY;
-        });
-
-        // Keyboard accessibility
-        shakeButton.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                shake();
-            }
-        });
-
-        // Initialize
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
-        initParticles();
-        animateGalaxy();
-    </script>
-</body>
-</html>
+            ctx.fillRect(0
