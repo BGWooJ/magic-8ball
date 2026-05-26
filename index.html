@@ -15,11 +15,7 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             overflow: hidden;
             background: #0a0e27;
-            cursor: grab;
-        }
-
-        body.grabbing {
-            cursor: grabbing;
+            cursor: default;
         }
 
         /* Galaxy Background */
@@ -51,8 +47,12 @@
             width: 400px;
             height: 400px;
             transform-style: preserve-3d;
-            transition: transform 0.1s ease-out;
             margin-bottom: 60px;
+            cursor: grab;
+        }
+
+        .ball-container:active {
+            cursor: grabbing;
         }
 
         .ball-container.shaking {
@@ -148,15 +148,20 @@
                 0 2px 4px rgba(0, 0, 0, 0.8);
             padding: 10px;
             line-height: 1.5;
-            opacity: 0;
-            transform: translateY(100px) scale(0.8);
-            filter: blur(8px);
-            transition: none;
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            filter: blur(0px);
             background: rgba(10, 10, 30, 0.3);
             border-radius: 8px;
         }
 
-        .response-text.visible {
+        .response-text.hidden {
+            opacity: 0;
+            transform: translateY(100px) scale(0.8);
+            filter: blur(8px);
+        }
+
+        .response-text.animating {
             animation: floatUp 2.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
         }
 
@@ -184,7 +189,7 @@
             }
         }
 
-        .response-text.sway {
+        .response-text.swaying {
             animation: gentleSway 4s ease-in-out infinite;
         }
 
@@ -226,13 +231,6 @@
             opacity: 0.5;
             cursor: not-allowed;
             background: linear-gradient(135deg, #555 0%, #777 100%);
-        }
-
-        .shake-button .cooldown {
-            font-size: 14px;
-            display: block;
-            margin-top: 5px;
-            letter-spacing: 1px;
         }
 
         /* Accessibility */
@@ -293,7 +291,7 @@
         </div>
 
         <button class="shake-button" id="shakeButton" aria-label="Shake the magic 8-ball">
-            <span id="buttonText">Shake</span>
+            Shake
         </button>
     </div>
 
@@ -424,4 +422,6 @@
         // MAGIC 8-BALL LOGIC
         // ===========================
         const ballContainer = document.getElementById('ballContainer');
-        const shakeButton = document.
+        const eightBall = document.getElementById('eightBall');
+        const shakeButton = document.getElementById('shakeButton');
+        const responseText
